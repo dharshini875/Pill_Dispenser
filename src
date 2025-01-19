@@ -1,0 +1,54 @@
+#include <Servo.h>
+
+Servo tubeServos[4];
+int servoPins[4] = {9, 10, 11, 12};
+unsigned long dispenseStartTime;
+int currentTube = 0;
+bool dispensing = false;
+unsigned long delayBetweenTubes = 5000;
+
+void setup() {
+  Serial.begin(9600);
+  for (int i = 0; i < 4; i++) {
+    tubeServos[i].attach(servoPins[i]);
+    tubeServos[i].write(0);
+  }
+}
+
+void loop() {
+  if (!dispensing && isTimeToDispense()) {
+    dispensing = true;
+    dispenseStartTime = millis();
+    currentTube = 0;
+    Serial.println("Dispensing started...");
+  }
+
+  if (dispensing) {
+    if (millis() - dispenseStartTime >= currentTube * delayBetweenTubes) {
+      dispensePill(currentTube);
+      currentTube++;
+
+      if (currentTube >= 4) {
+        dispensing = false;
+        Serial.println("Dispensing complete.");
+      }
+    }
+  }
+}
+
+bool isTimeToDispense() {
+  static unsigned long lastDispenseCheck = 0;
+  if (millis() - lastDispenseCheck >= 60000) {
+    lastDispenseCheck = millis();
+    return true;
+  }
+  return false;
+}
+
+void dispensePill(int tubeIndex) {
+  Serial.print("Dispensing pill from tube ");
+  Serial.println(tubeIndex + 1);
+  tubeServos[tubeIndex].write(90);
+  delay(1000);
+  tubeServos[tubeIndex].write(0);
+}
